@@ -1,10 +1,12 @@
 import fastify from 'fastify'
+import { knex } from './database'
 
 const server = fastify()
 
-server.get('/hello', (request, reply) => {
-  reply.send('hello world!')
+server.get('/hello', async () => {
+
 })
-server.listen({ port: 3333 }, () => {
-  console.log('HTTP Server Running!')
+
+server.listen({ port: 3333 }).then(() => {
+  console.log('HTTP Server Runing!')
 })
