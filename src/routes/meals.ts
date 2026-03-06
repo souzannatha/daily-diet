@@ -43,4 +43,24 @@ export function mealsRoutes(app: FastifyInstance) {
     return { meals }
   })
 
+  app.get('/:id', { preHandler: [checkSessionIdExists] }, async (request, reply) => {
+    const getMealParamsSchema = z.object({
+      id: z.uuid(),
+    })
+    const { id } = getMealParamsSchema.parse(request.params)
+    const { sessionId } = request.cookies
+
+    const user = await knex('users').where('session_id', sessionId).first()
+    if (!user) {
+      return reply.status(401).send({ message: "Unauthorized" })
+    }
+
+    const meal = await knex('meals').where({ id, user_id: user.id }).first()
+
+    if (!meal) {
+      return reply.status(404).send({ message: 'Meal not found' })
+    }
+    return { meal }
+  })
+
 }
