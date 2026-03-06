@@ -4,11 +4,9 @@ import { usersRoutes } from './routes/users'
 import cookie from '@fastify/cookie'
 
 import 'dotenv/config'
+import { mealsRoutes } from './routes/meals'
 
 const server = fastify()
-
-server.get('/hello', async () => {
-})
 
 server
   .listen({
@@ -22,4 +20,8 @@ server.register(cookie)
 
 server.register(usersRoutes, {
   prefix: 'users'
+})
+
+server.register(mealsRoutes, {
+  prefix: 'meals'
 })
