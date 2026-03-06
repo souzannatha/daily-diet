@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import z, { boolean, string } from 'zod'
+import z from 'zod'
 import { knex } from "../database";
 import { randomUUID } from "node:crypto";
 import { checkSessionIdExists } from "../middlewares/check-session-id-exists";
@@ -13,7 +13,7 @@ export function mealsRoutes(app: FastifyInstance) {
         name: z.string(),
         description: z.string(),
         is_on_diet: z.boolean(),
-        date: z.coerce.date()
+        date: z.string()
       })
 
       let { sessionId } = request.cookies
@@ -28,4 +28,19 @@ export function mealsRoutes(app: FastifyInstance) {
       await knex('meals').insert({ id: randomUUID(), user_id: user.id, name, description, is_on_diet, date, })
       return reply.status(201).send()
     })
+
+  app.get('/', { preHandler: [checkSessionIdExists] }, async (request, reply) => {
+    const { sessionId } = request.cookies
+
+    const user = await knex('users').where('session_id', sessionId).first()
+
+    if (!user) {
+      return reply.status(400).send({ message: "User Not Found" })
+    }
+
+    const meals = await knex('meals').where('user_id', user.id).select('*')
+
+    return { meals }
+  })
+
 }
