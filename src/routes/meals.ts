@@ -108,5 +108,22 @@ export function mealsRoutes(app: FastifyInstance) {
     return reply.status(200).send();
   });
 
+  app.delete('/:id', { preHandler: checkSessionIdExists }, async (request, reply) => {
+
+    const idMeal = z.object({
+      id: z.string(),
+    });
+
+    const { id } = idMeal.parse(request.params)
+
+    const meal = await knex('meals').where('id').first()
+
+    if (!meal) {
+      return reply.status(404).send({ error: 'Meal not found' });
+    }
+
+    await knex('meals').where({ id: id }).delete()
+    return reply.send(204).send()
+  });
 
 }
