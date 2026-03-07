@@ -100,29 +100,13 @@ export function mealsRoutes(app: FastifyInstance) {
       .update({
         name,
         description,
-        date: knex.fn.now(),
+        date: String(new Date().toISOString),
         is_on_diet,
-        updated_at: knex.fn.now()
+        updated_at: String(new Date().toISOString)
       });
 
     return reply.status(200).send();
   });
 
-  app.delete('/:id', { preHandler: checkSessionIdExists }, async (request, reply) => {
 
-    const idMeal = z.object({
-      id: z.string(),
-    });
-
-    const { id } = idMeal.parse(request.params)
-
-    const meal = await knex('meals').where('id').first()
-
-    if (!meal) {
-      return reply.status(404).send({ error: 'Meal not found' });
-    }
-
-    await knex('meals').where({ id: id }).delete()
-    return reply.send(204).send()
-  });
 }
