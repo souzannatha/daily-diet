@@ -25,7 +25,7 @@ export function mealsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ message: "User Not Found" })
       }
 
-      await knex('meals').insert({ id: randomUUID(), user_id: user.id, name, description, is_on_diet, date, })
+      await knex('meals').insert({ id: randomUUID(), user_id: user.id, name, description, is_on_diet, date: String(new Date().toISOString), })
       return reply.status(201).send()
     })
 
@@ -61,6 +61,35 @@ export function mealsRoutes(app: FastifyInstance) {
       return reply.status(404).send({ message: 'Meal not found' })
     }
     return { meal }
+  })
+
+  app.put('/:id', { preHandler: checkSessionIdExists }, async (request, reply) => {
+    const idMeal = z.object({
+      id: z.uuid(),
+    })
+
+    const updatedMealBodySchema = z.object({
+      name: z.string(),
+      description: z.string(),
+      is_on_diet: z.boolean(),
+      date: z.string()
+    })
+
+    const { id } = idMeal.parse(request.params)
+
+    const { name, description, date, is_on_diet } = updatedMealBodySchema.parse(request.body)
+
+    const meal = await knex('meals').where({ id: id }).first()
+
+    if (!meal) {
+      return reply.status(404).send({ error: 'Meal not found' })
+    }
+
+    await knex('meals').where({ id }).update({
+      name, description, date: String(new Date()), is_on_diet
+    })
+
+    return reply.status(200).send()
   })
 
 }
