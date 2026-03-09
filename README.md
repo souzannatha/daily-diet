@@ -47,7 +47,7 @@ A aplicação permite que usuários registrem suas refeições, indiquem se est�
 
 ---
 
-# 📏 RN (Regras de Negócio)
+#  RN (Regras de Negócio)
 
 - [x] Uma refeição deve pertencer a um usuário
 - [x] Uma refeição deve possuir:
@@ -61,7 +61,7 @@ A aplicação permite que usuários registrem suas refeições, indiquem se est�
 
 ---
 
-# ⚙️ RNF (Requisitos Não Funcionais)
+#  RNF (Requisitos Não Funcionais)
 
 - [x] A aplicação deve utilizar **cookies** para identificar o usuário entre as requisições
 - [x] O banco de dados deve ser gerenciado utilizando **Knex.js**
@@ -71,7 +71,7 @@ A aplicação permite que usuários registrem suas refeições, indiquem se est�
 
 ---
 
-# 🧪 Testes
+#  Testes
 
 A aplicação possui testes de integração para validar:
 
