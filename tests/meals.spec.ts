@@ -55,7 +55,7 @@ describe('Meals Route', () => {
       name: 'Lunch',
       description: 'lunch time!',
       is_on_diet: false,
-      date: String(new Date().toISOString)
+      date: new Date().toISOString()
     }).expect(201)
 
     const listMealResponse = await request(app.server).get('/meals').set('Cookie', cookies).expect(200)
@@ -72,6 +72,36 @@ describe('Meals Route', () => {
         description: 'lunch time!',
       },
     ])
+  })
+
+
+  it('should be to get a specific meal', async () => {
+    const createUserResponse = await request(app.server).post('/users').send({
+      name: 'New User',
+      email: 'userdailydiet@gmail.com'
+    }).expect(201)
+
+    const cookies = createUserResponse.get('Set-Cookie')!
+
+    await request(app.server).post('/meals').set('Cookie', cookies).send({
+      name: 'Bread and Eggs',
+      description: 'bread and eggs description',
+      is_on_diet: true,
+      date: new Date().toISOString()
+    }).expect(201)
+
+    const listMealResponse = await request(app.server).get('/meals').set('Cookie', cookies).expect(200)
+
+    const mealId = listMealResponse.body.meals[0].id
+
+    const getMealResponse = await request(app.server).get(`/meals/${mealId}`).set('Cookie', cookies).expect(200)
+
+    expect(getMealResponse.body.meal).toEqual(
+      expect.objectContaining({
+        name: 'Bread and Eggs',
+        description: 'bread and eggs description',
+      })
+    )
   })
 
 })
