@@ -4,17 +4,17 @@ import { execSync } from 'node:child_process'
 import request from 'supertest'
 
 describe('Meals Route', () => {
-  beforeEach(() => {
-    execSync('npm run knex migrate:rollback --all')
-    execSync('npm run knex migrate:latest')
-  })
-
   beforeAll(async () => {
     await app.ready()
   })
 
   afterAll(async () => {
     await app.close()
+  })
+
+  beforeEach(() => {
+    execSync('npm run knex migrate:rollback --all')
+    execSync('npm run knex migrate:latest')
   })
 
   it('should be able create a new meal', async () => {
@@ -173,13 +173,10 @@ describe('Meals Route', () => {
   })
 
   it('should be able to delete a specific meal', async () => {
-    const createUserResponse = await request(app.server)
-      .post('/users')
-      .send({
-        name: 'New User',
-        email: 'userdailydiet@gmail.com',
-      })
-      .expect(201)
+    const createUserResponse = await request(app.server).post('/users').send({
+      name: 'New User',
+      email: 'userdailydiet@gmail.com',
+    })
 
     const cookies = createUserResponse.get('Set-Cookie')!
 
@@ -210,5 +207,59 @@ describe('Meals Route', () => {
       .get(`/meals/${mealId}`)
       .set('Cookie', cookies)
       .expect(404)
+  })
+
+  it('should be able to get summary', async () => {
+    const createUserResponse = await request(app.server).post('/users').send({
+      name: 'New User',
+      email: 'userdailydiet@gmail.com',
+    })
+
+    const cookies = createUserResponse.get('Set-Cookie')!
+
+    await request(app.server)
+      .post('/meals')
+      .set('Cookie', cookies)
+      .send({
+        name: 'Bread and Eggs',
+        description: 'bread and eggs description',
+        is_on_diet: true,
+        date: new Date().toISOString(),
+      })
+      .expect(201)
+
+    await request(app.server)
+      .post('/meals')
+      .set('Cookie', cookies)
+      .send({
+        name: 'Bread and Eggs 2',
+        description: 'bread and eggs description 2',
+        is_on_diet: true,
+        date: new Date().toISOString(),
+      })
+      .expect(201)
+
+    await request(app.server)
+      .post('/meals')
+      .set('Cookie', cookies)
+      .send({
+        name: 'Lunch',
+        description: 'lunch time!',
+        is_on_diet: false,
+        date: new Date().toISOString(),
+      })
+      .expect(201)
+
+    const metricsResponse = await request(app.server)
+      .get('/meals/summary')
+      .set('Cookie', cookies)
+      .expect(200)
+
+    expect(metricsResponse.body).toEqual({
+      totalMeals: 3,
+      totalOnDiet: 2,
+      totalOffDiet: 1,
+      bestDietSequence: 2,
+    })
   })
 })

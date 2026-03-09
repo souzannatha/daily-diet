@@ -1,10 +1,16 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    execArgv: ['--expose-gc'],
-    isolate: false,
-    maxWorkers: 1,
-    vmMemoryLimit: '300Mb',
+    globals: true,
+    reporters: 'verbose',
+    fileParallelism: false,
+    // This fix the conflict between tests switches and the single database
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
-});
+})
