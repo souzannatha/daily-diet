@@ -20,11 +20,10 @@ describe('Users Route', () => {
   })
 
   it('should be able to create a new user', async () => {
-    const response = await request(app.server).post('/users').send({
+    await request(app.server).post('/users').send({
       name: 'New User',
       email: 'userdailydiet@gmail.com'
     }).expect(201)
-    console.log(response.body)
   })
 })
 
