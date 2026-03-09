@@ -1,14 +1,13 @@
-import { FastifyInstance } from "fastify";
-import { knex } from "../database";
+import { FastifyInstance } from 'fastify'
+import { knex } from '../database'
 import z from 'zod'
-import { randomUUID } from "node:crypto";
+import { randomUUID } from 'node:crypto'
 
 export function usersRoutes(app: FastifyInstance) {
   app.post('/', async (request, reply) => {
-
     const createUsersBodySchema = z.object({
       name: z.string(),
-      email: z.email()
+      email: z.email(),
     })
 
     let sessionId = request.cookies.sessionId
@@ -30,7 +29,10 @@ export function usersRoutes(app: FastifyInstance) {
     }
 
     await knex('users').insert({
-      id: randomUUID(), email, name, session_id: sessionId
+      id: randomUUID(),
+      email,
+      name,
+      session_id: sessionId,
     })
     return reply.status(201).send()
   })

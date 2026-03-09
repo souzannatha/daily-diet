@@ -1,11 +1,10 @@
-import { FastifyInstance } from 'fastify';
-import z from 'zod';
-import { knex } from '../database';
-import { randomUUID } from 'node:crypto';
-import { checkSessionIdExists } from '../middlewares/check-session-id-exists';
+import { FastifyInstance } from 'fastify'
+import z from 'zod'
+import { knex } from '../database'
+import { randomUUID } from 'node:crypto'
+import { checkSessionIdExists } from '../middlewares/check-session-id-exists'
 
 export function mealsRoutes(app: FastifyInstance) {
-
   app.post(
     '/',
     {
@@ -17,15 +16,20 @@ export function mealsRoutes(app: FastifyInstance) {
         description: z.string(),
         is_on_diet: z.boolean(),
         date: z.string(),
-      });
+      })
 
-      let { sessionId } = request.cookies;
+      const { sessionId } = request.cookies
 
-      const { name, description, is_on_diet, date } = createMealsBodySchema.parse(request.body);
-      const user = await knex('users').where('session_id', sessionId).first();
+      const {
+        name,
+        description,
+        is_on_diet: isOnDiet,
+        date,
+      } = createMealsBodySchema.parse(request.body)
+      const user = await knex('users').where('session_id', sessionId).first()
 
       if (!user) {
-        return reply.status(400).send({ message: 'User Not Found' });
+        return reply.status(400).send({ message: 'User Not Found' })
       }
 
       await knex('meals').insert({
@@ -33,147 +37,169 @@ export function mealsRoutes(app: FastifyInstance) {
         user_id: user.id,
         name,
         description,
-        is_on_diet,
-        date: String(new Date().toISOString),
-      });
-      return reply.status(201).send();
-    }
-  );
+        is_on_diet: isOnDiet,
+        date,
+      })
+      return reply.status(201).send()
+    },
+  )
 
-  app.get('/', { preHandler: [checkSessionIdExists] }, async (request, reply) => {
-    const { sessionId } = request.cookies;
+  app.get(
+    '/',
+    { preHandler: [checkSessionIdExists] },
+    async (request, reply) => {
+      const { sessionId } = request.cookies
 
-    const user = await knex('users').where('session_id', sessionId).first();
+      const user = await knex('users').where('session_id', sessionId).first()
 
-    if (!user) {
-      return reply.status(400).send({ message: 'User Not Found' });
-    }
-
-    const meals = await knex('meals').where('user_id', user.id).select('*');
-
-    return { meals };
-  });
-
-  app.get('/:id', { preHandler: [checkSessionIdExists] }, async (request, reply) => {
-    const getMealParamsSchema = z.object({
-      id: z.uuid(),
-    });
-    const { id } = getMealParamsSchema.parse(request.params);
-    const { sessionId } = request.cookies;
-
-    const user = await knex('users').where('session_id', sessionId).first();
-    if (!user) {
-      return reply.status(401).send({ message: 'Unauthorized' });
-    }
-
-    const meal = await knex('meals').where({ id, user_id: user.id }).first();
-
-    if (!meal) {
-      return reply.status(404).send({ message: 'Meal not found' });
-    }
-    return { meal };
-  });
-
-  app.get('/summary', { preHandler: [checkSessionIdExists] }, async (request, reply) => {
-
-    const { sessionId } = request.cookies
-    const user = await knex('users').where('session_id', sessionId).first()
-
-    if (!user) {
-      return reply.status(400).send({ message: 'User Not Found' });
-    }
-
-
-    const meals = await knex('meals').where('user_id', user.id).select('*');
-    const totalMeals = meals.length
-
-    const mealsOnDiet = meals.filter((meal) => meal.is_on_diet)
-
-    const mealsOffDiet = meals.filter((meal) => !meal.is_on_diet)
-
-    let currentSequence = 0
-    let bestSequence = 0
-
-    for (const meal of meals) {
-      if (meal.is_on_diet) {
-        currentSequence++
-
-        if (currentSequence > bestSequence) {
-          bestSequence = currentSequence
-        }
-      } else {
-        currentSequence = 0
+      if (!user) {
+        return reply.status(400).send({ message: 'User Not Found' })
       }
-    }
 
-    return reply.send({
-      totalMeals,
-      totalOnDiet: mealsOnDiet.length,
-      totalOffDiet: mealsOffDiet.length,
-      bestDietSequence: bestSequence
-    })
-  })
+      const meals = await knex('meals').where('user_id', user.id).select('*')
 
-  app.put('/:id', { preHandler: checkSessionIdExists }, async (request, reply) => {
-    const idMealSchema = z.object({
-      id: z.uuid(),
-    });
+      return { meals }
+    },
+  )
 
-    const updatedMealBodySchema = z.object({
-      name: z.string(),
-      description: z.string(),
-      is_on_diet: z.boolean(),
-      date: z.string(),
-    });
+  app.get(
+    '/:id',
+    { preHandler: [checkSessionIdExists] },
+    async (request, reply) => {
+      const getMealParamsSchema = z.object({
+        id: z.uuid(),
+      })
+      const { id } = getMealParamsSchema.parse(request.params)
+      const { sessionId } = request.cookies
 
-    const { id } = idMealSchema.parse(request.params);
+      const user = await knex('users').where('session_id', sessionId).first()
+      if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized' })
+      }
 
-    const { name, description, date, is_on_diet } = updatedMealBodySchema.parse(request.body);
+      const meal = await knex('meals').where({ id, user_id: user.id }).first()
 
-    const meal = await knex('meals').where({ id: id }).first();
+      if (!meal) {
+        return reply.status(404).send({ message: 'Meal not found' })
+      }
+      return { meal }
+    },
+  )
 
-    if (!meal) {
-      return reply.status(404).send({ error: 'Meal not found' });
-    }
+  app.get(
+    '/summary',
+    { preHandler: [checkSessionIdExists] },
+    async (request, reply) => {
+      const { sessionId } = request.cookies
+      const user = await knex('users').where('session_id', sessionId).first()
 
-    await knex('meals')
-      .where({ id })
-      .update({
+      if (!user) {
+        return reply.status(400).send({ message: 'User Not Found' })
+      }
+
+      const meals = await knex('meals').where('user_id', user.id).select('*')
+      const totalMeals = meals.length
+
+      const mealsOnDiet = meals.filter((meal) => meal.is_on_diet)
+
+      const mealsOffDiet = meals.filter((meal) => !meal.is_on_diet)
+
+      let currentSequence = 0
+      let bestSequence = 0
+
+      for (const meal of meals) {
+        if (meal.is_on_diet) {
+          currentSequence++
+
+          if (currentSequence > bestSequence) {
+            bestSequence = currentSequence
+          }
+        } else {
+          currentSequence = 0
+        }
+      }
+
+      return reply.send({
+        totalMeals,
+        totalOnDiet: mealsOnDiet.length,
+        totalOffDiet: mealsOffDiet.length,
+        bestDietSequence: bestSequence,
+      })
+    },
+  )
+
+  app.put(
+    '/:id',
+    { preHandler: checkSessionIdExists },
+    async (request, reply) => {
+      const idMealSchema = z.object({
+        id: z.uuid(),
+      })
+
+      const updatedMealBodySchema = z.object({
+        name: z.string(),
+        description: z.string(),
+        is_on_diet: z.boolean(),
+        date: z.string(),
+      })
+
+      const { id } = idMealSchema.parse(request.params)
+
+      const {
         name,
         description,
-        date: String(new Date().toISOString),
-        is_on_diet,
-        updated_at: String(new Date().toISOString)
-      });
+        date,
+        is_on_diet: isOnDiet,
+      } = updatedMealBodySchema.parse(request.body)
 
-    return reply.status(200).send();
-  });
+      const meal = await knex('meals').where({ id }).first()
 
-  app.delete('/:id', { preHandler: checkSessionIdExists }, async (request, reply) => {
+      if (!meal) {
+        return reply.status(404).send({ error: 'Meal not found' })
+      }
 
-    const idMeal = z.object({
-      id: z.uuid(),
-    });
+      await knex('meals').where({ id }).update({
+        name,
+        description,
+        date,
+        is_on_diet: isOnDiet,
+        updated_at: new Date().toISOString(),
+      })
 
-    const { id } = idMeal.parse(request.params)
-    const { sessionId } = request.cookies;
+      return reply.status(204).send()
+    },
+  )
 
-    const user = await knex('users').where('session_id', sessionId).first();
+  app.delete(
+    '/:id',
+    { preHandler: checkSessionIdExists },
+    async (request, reply) => {
+      const idMeal = z.object({
+        id: z.uuid(),
+      })
 
-    if (!user) {
-      return reply.status(401).send({ message: 'Unauthorized' });
-    }
+      const { id } = idMeal.parse(request.params)
+      const { sessionId } = request.cookies
 
-    const meal = await knex('meals').where({ id }).first()
+      const user = await knex('users').where('session_id', sessionId).first()
 
-    if (!meal) {
-      return reply.status(404).send({ error: 'Meal not found' });
-    }
+      if (!user) {
+        return reply.status(401).send({ message: 'Unauthorized' })
+      }
 
-    await knex('meals').where({
-      id: id, user_id: user.id
-    }).delete()
-    return reply.status(204).send()
-  });
+      const meal = await knex('meals').where({ id }).first()
 
+      if (!meal) {
+        return reply.status(404).send({ error: 'Meal not found' })
+      }
+
+      await knex('meals')
+        .where({
+          id,
+          user_id: user.id,
+        })
+        .delete()
+      return reply.status(204).send()
+    },
+  )
 }
